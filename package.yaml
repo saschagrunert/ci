@@ -46,7 +46,6 @@ dependencies:
   - lens
   - monad-control
   - monad-logger
-  - random
   - safe
   - shakespeare
   - template-haskell

@@ -6,16 +6,16 @@ module Docker
   , MonadShell
   , build
   , buildFromConfigPath
+  , buildsh
   ) where
 
-import Config        (Config, docker, load)
-import Control.Lens  ((^.))
-import Data.Text     (pack)
-import Prelude       hiding (FilePath)
-import System.Random (StdGen, getStdGen, randomRs)
-import Turtle        (ExitCode (ExitSuccess), FilePath, Line, Managed, Shell,
-                      Text, cd, empty, liftIO, mktempdir, rmtree, sh, shell,
-                      touch, using, writeTextFile)
+import Config       (docker, load)
+import Control.Lens ((^.))
+import Data.Text    as T (intercalate, pack)
+import Prelude      hiding (FilePath)
+import Turtle       (ExitCode (ExitSuccess), FilePath, Line, Managed, Shell,
+                     Text, basename, cd, empty, format, fp, liftIO, mktempdir,
+                     rmtree, sh, shell, touch, using, writeTextFile)
 
 -- | Monadic abstraction for IO actions
 --
@@ -23,14 +23,12 @@ import Turtle        (ExitCode (ExitSuccess), FilePath, Line, Managed, Shell,
 class Monad m =>
       MonadIO m
   where
-  getStdGen' :: m StdGen
   sh' :: Shell a -> m ()
 
 -- | Monadic abstraction for IO
 --
 -- @since 0.1.0
 instance MonadIO IO where
-  getStdGen' = getStdGen
   sh' = sh
 
 -- | Monadic abstraction for Shell actions
@@ -80,36 +78,28 @@ build content = sh' $ buildsh content
 -- Returns the build image on success
 --
 -- @since 0.1.0
-buildsh :: MonadShell m => String -> m (Maybe String)
+buildsh :: MonadShell m => String -> m (Maybe Text)
 buildsh content = do
   dir <- using' (mktempdir "." "build")
   cd' dir
   let dockerFile = "Dockerfile"
   touch' dockerFile
-  liftIO' . writeTextFile dockerFile $ pack content
-  rnd <- liftIO' randomBuildString
-  res <- dockerBuild rnd
+  liftIO' . writeTextFile dockerFile $ T.pack content
+  let dirText = format fp $ basename dir
+  res <- dockerBuild dirText
   cd' ".."
   rmtree' dir
   return $
     if res == ExitSuccess
-      then Just rnd
+      then Just dirText
       else Nothing
-
--- | Retrieve a random build string
---
--- @since 0.1.0
-randomBuildString :: MonadIO m => m String
-randomBuildString = do
-  gen <- getStdGen'
-  let rnd = take 5 $ randomRs ('a', 'z') gen
-  return $ "build-" ++ rnd
 
 -- | Build the docker image from the current directory
 --
 -- @since 0.1.0
 dockerBuild ::
      MonadShell m
-  => String -- ^ The name:tag of the image
+  => Text -- ^ The name:tag of the image
   -> m ExitCode
-dockerBuild n = shell' (pack $ "docker build --pull -t " ++ n ++ " .") empty
+dockerBuild n =
+  shell' (T.intercalate " " ["docker build --pull -t", n, "."]) empty
