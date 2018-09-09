@@ -39,6 +39,7 @@ dependencies:
   - directory
   - fast-logger
   - file-embed
+  - foldl
   - foreign-store
   - hjsmin
   - http-client-tls

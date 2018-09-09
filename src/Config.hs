@@ -8,12 +8,10 @@ module Config
   ( Config
   , MonadIO
   , docker
-  , image
   , load
   ) where
 
 import Control.Lens (makeLenses)
-import Data.Maybe   (isNothing)
 import Data.Yaml    (FromJSON (parseJSON), ParseException, decodeFileEither,
                      withObject, (.:?))
 import GHC.Generics (Generic)
@@ -36,8 +34,7 @@ instance MonadIO IO where
 --
 -- @since 0.1.0
 data Config = Config
-  { _docker :: Maybe String -- ^ A custom docker script
-  , _image  :: Maybe String -- ^ A prebuild docker image
+  { _docker :: Either String String -- ^ Either a docker build script or a prebuilt image
   } deriving (Show, Generic)
 
 makeLenses ''Config
@@ -50,9 +47,11 @@ instance FromJSON Config where
     withObject "AppSettings" $ \o -> do
       d <- o .:? "docker"
       i <- o .:? "image"
-      if isNothing d && isNothing i
-        then fail "Neither 'docker' nor 'image' found"
-        else return Config {_docker = d, _image = i}
+      case (d, i) of
+        (Nothing, Nothing) -> fail "Neither 'docker' nor 'image' found"
+        (Just _, Just _)   -> fail "Both 'docker' and 'image' found"
+        (Nothing, Just r)  -> return Config {_docker = Right r}
+        (Just l, Nothing)  -> return Config {_docker = Left l}
 
 -- | Load the config from a given path
 --
