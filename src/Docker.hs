@@ -5,7 +5,7 @@ module Docker
   ( buildFromConfigPath
   ) where
 
-import           Config            (docker, load)
+import           Config            (Docker (Build, Image), docker, load)
 import           Control.Exception (SomeException, displayException, try)
 import qualified Control.Foldl     as Fold (head)
 import           Control.Lens      ((^.))
@@ -25,8 +25,8 @@ buildFromConfigPath path = do
   case p of
     Right c ->
       case c ^. docker of
-        Left d  -> build d
-        Right i -> return $ Right i
+        Build d -> build d
+        Image i -> return $ Right i
     Left e -> return . Left $ displayException e
 
 -- | Build the provided Dockerfile content
@@ -39,7 +39,7 @@ build content = do
   res <-
     try $
     fold
-      (do dir <- using $ mktempdir "." "build"
+      (do dir <- using $ mktempdir "/tmp" "build"
           cd dir
           let dockerFile = "Dockerfile"
           touch dockerFile

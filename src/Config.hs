@@ -6,6 +6,7 @@
 -- @since 0.1.0
 module Config
   ( Config
+  , Docker(Build, Image)
   , MonadIO
   , docker
   , load
@@ -33,9 +34,17 @@ instance MonadIO IO where
 -- | The main configuration data
 --
 -- @since 0.1.0
-data Config = Config
-  { _docker :: Either String String -- ^ Either a docker build script or a prebuilt image
+newtype Config = Config
+  { _docker :: Docker -- ^ The docker confiuration
   } deriving (Show, Generic)
+
+-- | The docker config data
+--
+-- @since 0.1.0
+data Docker
+  = Build String -- ^ Dockerfile content
+  | Image String -- ^ A given image
+  deriving (Show, Generic)
 
 makeLenses ''Config
 
@@ -50,8 +59,8 @@ instance FromJSON Config where
       case (d, i) of
         (Nothing, Nothing) -> fail "Neither 'docker' nor 'image' found"
         (Just _, Just _)   -> fail "Both 'docker' and 'image' found"
-        (Nothing, Just r)  -> return Config {_docker = Right r}
-        (Just l, Nothing)  -> return Config {_docker = Left l}
+        (Nothing, Just r)  -> return Config {_docker = Image r}
+        (Just l, Nothing)  -> return Config {_docker = Build l}
 
 -- | Load the config from a given path
 --
