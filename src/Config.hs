@@ -10,12 +10,15 @@ module Config
   , MonadIO
   , docker
   , load
+  , run
   ) where
 
-import Control.Lens (makeLenses)
-import Data.Yaml    (FromJSON (parseJSON), ParseException, decodeFileEither,
-                     withObject, (.:?))
-import GHC.Generics (Generic)
+import Control.Arrow     (left)
+import Control.Exception (displayException)
+import Control.Lens      (makeLenses)
+import Data.Yaml         (FromJSON (parseJSON), ParseException,
+                          decodeFileEither, withObject, (.:), (.:?))
+import GHC.Generics      (Generic)
 
 -- | Monadic abstraction
 --
@@ -34,8 +37,9 @@ instance MonadIO IO where
 -- | The main configuration data
 --
 -- @since 0.1.0
-newtype Config = Config
+data Config = Config
   { _docker :: Docker -- ^ The docker confiuration
+  , _run    :: String -- ^ The run command
   } deriving (Show, Generic)
 
 -- | The docker config data
@@ -53,17 +57,20 @@ makeLenses ''Config
 -- @since 0.1.0
 instance FromJSON Config where
   parseJSON =
-    withObject "AppSettings" $ \o -> do
-      d <- o .:? "docker"
-      i <- o .:? "image"
-      case (d, i) of
-        (Nothing, Nothing) -> fail "Neither 'docker' nor 'image' found"
-        (Just _, Just _)   -> fail "Both 'docker' and 'image' found"
-        (Nothing, Just r)  -> return Config {_docker = Image r}
-        (Just l, Nothing)  -> return Config {_docker = Build l}
+    withObject "Config" $ \o -> do
+      dockerField <- o .:? "docker"
+      imageField <- o .:? "image"
+      _docker <-
+        case (dockerField, imageField) of
+          (Nothing, Nothing) -> fail "Neither 'docker' nor 'image' found"
+          (Just _, Just _)   -> fail "Both 'docker' and 'image' found"
+          (Nothing, Just r)  -> return $ Image r
+          (Just l, Nothing)  -> return $ Build l
+      _run <- o .: "run"
+      return Config {_docker = _docker, _run = _run}
 
 -- | Load the config from a given path
 --
 -- @since 0.1.0
-load :: MonadIO m => String -> m (Either ParseException Config)
-load = decodeFileEither'
+load :: MonadIO m => String -> m (Either String Config)
+load s = left displayException <$> decodeFileEither' s

@@ -49,6 +49,7 @@ dependencies:
   - monad-logger
   - safe
   - shakespeare
+  - system-filepath
   - template-haskell
   - text
   - time

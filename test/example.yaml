@@ -1,4 +1,6 @@
 ---
 docker: |
   FROM alpine:latest
-  CMD echo "Hello world"
+run: |
+  echo "Hello"
+  echo "World"
