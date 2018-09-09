@@ -74,11 +74,14 @@ build content = do
 -- Returns the stdout (Right) on success, otherwise the stderr (Left)
 --
 -- @since 0.1.0
-runImage :: String -> String -> IO (Either String String)
+runImage :: String -> String -> IO ExitCode
 runImage cmd image =
-  shellStrictEither $ printf "docker run --rm %s sh -c \"%s\"" image cmd
+  shell
+    (pack $
+     printf "docker run -v $PWD/work -w /work --rm %s sh -c \"%s\"" image cmd)
+    empty
 
--- | Remove a docker image from the registry
+-- | Remove a docker image from the local daemon
 --
 -- @since 0.1.0
 removeImage :: String -> IO (Either String String)
