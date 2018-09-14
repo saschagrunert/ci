@@ -27,7 +27,7 @@ import Network.Wai.Middleware.RequestLogger (Destination (Logger), IPAddrSource 
                                              outputFormat)
 import System.Log.FastLogger                (defaultBufSize, newStdoutLoggerSet)
 import Web.Foundation                       (App (..), Route (..), resourcesApp)
-import Web.Handler.Api                      (getApiR, postApiR)
+import Web.Handler.Build                    (postBuildR)
 import Web.Handler.Common                   (getFaviconR)
 import Web.Handler.Home                     (getHomeR, postHomeR)
 import Web.Settings                         (AppSettings,
@@ -99,11 +99,11 @@ makeFoundation settings = do
       (settings ^. appStaticDir)
   return
     App
-    { appSettings = settings
-    , appStatic = stat
-    , appHttpManager = httpManager
-    , appLogger = logger
-    }
+      { appSettings = settings
+      , appStatic = stat
+      , appHttpManager = httpManager
+      , appLogger = logger
+      }
 
 -- | Warp settings for the given foundation value
 --
@@ -141,12 +141,12 @@ makeLogWare :: App -> IO Middleware
 makeLogWare foundation =
   mkRequestLogger
     def
-    { outputFormat =
-        if appSettings foundation ^. appDetailedRequestLogging
-          then Detailed True
-          else Apache
-                 (if appSettings foundation ^. appIpFromHeader
-                    then FromFallback
-                    else FromSocket)
-    , destination = Logger . loggerSet $ appLogger foundation
-    }
+      { outputFormat =
+          if appSettings foundation ^. appDetailedRequestLogging
+            then Detailed True
+            else Apache
+                   (if appSettings foundation ^. appIpFromHeader
+                      then FromFallback
+                      else FromSocket)
+      , destination = Logger . loggerSet $ appLogger foundation
+      }

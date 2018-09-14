@@ -8,8 +8,10 @@ pipeline:
       - name: Step 1a
         command: echo 'Step 1a'
         steps:
-          - name: Step 1b
-            command: echo 'Step 1b'
+          - name: Step 1ab
+            command: echo 'Step 1ab'
+      - name: Step 1b
+        command: echo 'Step 1b'
   - name: Step 2
     command: echo 'Step 2'
   - name: Step 3

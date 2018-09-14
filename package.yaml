@@ -27,6 +27,7 @@ default-extensions:
   - ViewPatterns
 dependencies:
   - aeson
+  - async
   - base
   - bytestring
   - case-insensitive

@@ -8,7 +8,7 @@ module Config
   ( Config
   , Docker(Build, Image)
   , MonadIO
-  , Step
+  , Step(Step)
   , command
   , docker
   , load
@@ -61,26 +61,29 @@ data Step = Step
   { _name    :: String
   , _command :: String
   , _steps   :: Maybe [Step]
-  } deriving(Show, Generic)
+  } deriving (Show, Generic)
 
 makeLenses ''Step
+
 makeLenses ''Config
 
 -- | Step parsing
 --
 -- @since 0.1.0
 instance FromJSON Step where
-  parseJSON = withObject "Step" $ \o -> do
-    _name <- o .: "name"
-    _command <- o .: "command"
-    _steps <- o .:? "steps"
-    return Step {_name = _name, _command = _command, _steps = _steps}
+  parseJSON =
+    withObject "Step" $ \o -> do
+      _name <- o .: "name"
+      _command <- o .: "command"
+      _steps <- o .:? "steps"
+      return Step {_name = _name, _command = _command, _steps = _steps}
 
 -- | Configuration parsing
 --
 -- @since 0.1.0
 instance FromJSON Config where
-  parseJSON = withObject "Config" $ \o -> do
+  parseJSON =
+    withObject "Config" $ \o -> do
       dockerField <- o .:? "docker"
       imageField <- o .:? "image"
       _docker <-

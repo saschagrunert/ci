@@ -1,16 +1,12 @@
-module Web.Handler.Api
-  ( getApiR
-  , postApiR
+module Web.Handler.Build
+  ( postBuildR
   ) where
 
 import Data.Aeson.Types (Result (Success))
 import Web.Import
 
-getApiR :: Handler Value
-getApiR = return $ String "Hello world"
-
-postApiR :: Handler ()
-postApiR = do
+postBuildR :: Handler ()
+postBuildR = do
   body <- parseJsonBody :: Handler (Result Value)
   case body of
     Success v -> sendResponse v
