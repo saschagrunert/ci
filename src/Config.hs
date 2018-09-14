@@ -8,9 +8,13 @@ module Config
   ( Config
   , Docker(Build, Image)
   , MonadIO
+  , Step
+  , command
   , docker
   , load
-  , run
+  , name
+  , pipeline
+  , steps
   ) where
 
 import Control.Arrow     (left)
@@ -38,8 +42,8 @@ instance MonadIO IO where
 --
 -- @since 0.1.0
 data Config = Config
-  { _docker :: Docker -- ^ The docker confiuration
-  , _run    :: String -- ^ The run command
+  { _docker   :: Docker -- ^ The docker confiuration
+  , _pipeline :: [Step]
   } deriving (Show, Generic)
 
 -- | The docker config data
@@ -50,14 +54,33 @@ data Docker
   | Image String -- ^ A given image
   deriving (Show, Generic)
 
+-- | A single build step abstraction
+--
+-- @since 0.1.0
+data Step = Step
+  { _name    :: String
+  , _command :: String
+  , _steps   :: Maybe [Step]
+  } deriving(Show, Generic)
+
+makeLenses ''Step
 makeLenses ''Config
+
+-- | Step parsing
+--
+-- @since 0.1.0
+instance FromJSON Step where
+  parseJSON = withObject "Step" $ \o -> do
+    _name <- o .: "name"
+    _command <- o .: "command"
+    _steps <- o .:? "steps"
+    return Step {_name = _name, _command = _command, _steps = _steps}
 
 -- | Configuration parsing
 --
 -- @since 0.1.0
 instance FromJSON Config where
-  parseJSON =
-    withObject "Config" $ \o -> do
+  parseJSON = withObject "Config" $ \o -> do
       dockerField <- o .:? "docker"
       imageField <- o .:? "image"
       _docker <-
@@ -66,8 +89,8 @@ instance FromJSON Config where
           (Just _, Just _)   -> fail "Both 'docker' and 'image' found"
           (Nothing, Just r)  -> return $ Image r
           (Just l, Nothing)  -> return $ Build l
-      _run <- o .: "run"
-      return Config {_docker = _docker, _run = _run}
+      _pipeline <- o .: "pipeline"
+      return Config {_docker = _docker, _pipeline = _pipeline}
 
 -- | Load the config from a given path
 --
