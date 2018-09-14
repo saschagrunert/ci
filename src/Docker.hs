@@ -75,19 +75,16 @@ build content = do
 runImage :: String -> String -> IO ExitCode
 runImage cmd image = do
   res <-
-    try
-      (sh
-         (do dockerRes <-
-               inshellWithErr
-                 (pack .
-                  printf
-                    "docker run -v $PWD/work -w /work --rm %s sh -c %s"
-                    image $
-                  escape cmd)
-                 empty
-             case dockerRes of
-               Left o  -> toText o
-               Right o -> toText o))
+    try . sh $ do
+      dockerRes <-
+        inshellWithErr
+          (pack .
+           printf "docker run -v $PWD/work -w /work --rm %s sh -c %s" image $
+           escape cmd)
+          empty
+      case dockerRes of
+        Left o  -> toText o
+        Right o -> toText o
   return $
     case res of
       Left code -> code
