@@ -19,8 +19,8 @@ import           Prelude                   hiding (FilePath)
 import           System.Directory          (getTemporaryDirectory)
 import           Text.Printf               (printf)
 import           Turtle                    (ExitCode (ExitSuccess), Shell, Text,
-                                            basename, cd, empty, fold, format,
-                                            fp, liftIO, mktempdir, shell,
+                                            basename, empty, fold, format, fp,
+                                            liftIO, mktempdir, pushd, shell,
                                             shellStrictWithErr, touch, using,
                                             writeTextFile)
 
@@ -45,13 +45,12 @@ build content = do
     fold
       (do tmp <- liftIO getTemporaryDirectory
           dir <- using $ mktempdir (fromText $ pack tmp) "build"
-          cd dir
+          pushd dir
           let dockerFile = "Dockerfile"
           touch dockerFile
           liftIO . writeTextFile dockerFile $ pack content
           let dirText = format fp $ basename dir
           imageBuilt <- dockerBuild dirText
-          cd ".."
           return
             (if imageBuilt == ExitSuccess
                then Just dirText
@@ -78,8 +77,19 @@ runImage :: String -> String -> IO ExitCode
 runImage cmd image =
   shell
     (pack $
-     printf "docker run -v $PWD/work -w /work --rm %s sh -c \"%s\"" image cmd)
+     printf "docker run -v $PWD/work -w /work --rm %s sh -c %s" image $
+     escape cmd)
     empty
+
+-- | Shell escape a string
+--
+-- @since 0.1.0
+escape :: String -> String
+escape xs = "'" ++ concatMap f xs ++ "'"
+  where
+    f '\0' = ""
+    f '\'' = "'\"'\"'"
+    f x    = [x]
 
 -- | Remove a docker image from the local daemon
 --
