@@ -3,16 +3,25 @@ docker: |
   FROM alpine:latest
 pipeline:
   - name: Step 1
-    command: echo "Step 1"
+    command: echo "Step 1 started/done"
     steps:
       - name: Step 1a
-        command: echo "Step 1a"
+        command: echo "Step 1a started/done"
         steps:
           - name: Step 1ab
-            command: echo "Step 1ab"
+            command: echo "Step 1ab started/done"
       - name: Step 1b
-        command: echo "Step 1b"
+        command: |
+          echo "Step 1b started"
+          sleep 3
+          echo "Step 1b done"
   - name: Step 2
-    command: echo "Step 2"
+    command: |
+      echo "Step 2 started"
+      sleep 5
+      echo "Step 2 done"
   - name: Step 3
-    command: echo "Step 3"
+    command: |
+      echo "Step 3 started"
+      sleep 6
+      echo "Step 3 done"
