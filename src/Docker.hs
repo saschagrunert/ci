@@ -19,10 +19,11 @@ import           Prelude                   hiding (FilePath)
 import           System.Directory          (getTemporaryDirectory)
 import           Text.Printf               (printf)
 import           Turtle                    (ExitCode (ExitSuccess), Shell, Text,
-                                            basename, empty, fold, format, fp,
-                                            liftIO, mktempdir, pushd, shell,
-                                            shellStrictWithErr, touch, using,
-                                            writeTextFile)
+                                            basename, echo, empty, fold, format,
+                                            fp, inshellWithErr, liftIO,
+                                            lineToText, mktempdir, pushd, sh,
+                                            shell, shellStrictWithErr, touch,
+                                            using, writeTextFile)
 
 -- | Build the docker image from the config path if necessary
 --
@@ -70,16 +71,31 @@ build content = do
 
 -- | Run a command for the given docker image
 --
--- Returns the stdout (Right) on success, otherwise the stderr (Left)
---
 -- @since 0.1.0
 runImage :: String -> String -> IO ExitCode
-runImage cmd image =
-  shell
-    (pack $
-     printf "docker run -v $PWD/work -w /work --rm %s sh -c %s" image $
-     escape cmd)
-    empty
+runImage cmd image = do
+  res <-
+    try
+      (sh
+         (do dockerRes <-
+               inshellWithErr
+                 (pack .
+                  printf
+                    "docker run -v $PWD/work -w /work --rm %s sh -c %s"
+                    image $
+                  escape cmd)
+                 empty
+             case dockerRes of
+               Left o  -> toText o
+               Right o -> toText o))
+  return $
+    case res of
+      Left code -> code
+      Right ()  -> ExitSuccess
+  where
+    toText o = do
+      echo o
+      return $ lineToText o
 
 -- | Shell escape a string
 --

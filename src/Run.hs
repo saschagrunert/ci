@@ -24,25 +24,28 @@ runConfig path =
         success <- runPipeline (config ^. pipeline) image
         removeImage image >>|
           return
-            (if success
+            (if success == ExitSuccess
                then return $ Right "Success"
                else return $ Left "Failure")))
 
 -- | Run the complete pipeline
 --
 -- @since 0.1.0
-runPipeline :: [Step] -> String -> IO Bool
+runPipeline :: [Step] -> String -> IO ExitCode
 runPipeline stepList image = do
-  exitCodes <- mapConcurrently (runStep image) stepList
-  return $ all (== True) exitCodes
+  results <- mapConcurrently (runStep image) stepList
+  return $
+    if all (== ExitSuccess) results
+      then ExitSuccess
+      else ExitFailure 1
 
 -- | Run a single step
 --
 -- @since 0.1.0
-runStep :: String -> Step -> IO Bool
+runStep :: String -> Step -> IO ExitCode
 runStep image step = do
   res <- runImage (step ^. command) image
   case (step ^. steps, res) of
-    (_, ExitFailure _)       -> return False
-    (Nothing, ExitSuccess)   -> return True
+    (_, e@(ExitFailure _))   -> return e
+    (Nothing, ExitSuccess)   -> return ExitSuccess
     (Just more, ExitSuccess) -> runPipeline more image
