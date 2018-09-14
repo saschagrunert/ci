@@ -93,9 +93,7 @@ runImage cmd image = do
       Left code -> code
       Right ()  -> ExitSuccess
   where
-    toText o = do
-      echo o
-      return $ lineToText o
+    toText o = echo o >> return (lineToText o)
 
 -- | Shell escape a string
 --
